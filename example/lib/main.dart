@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:anchor_toast/anchor_toast.dart';
 
@@ -10,23 +12,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Anchor Toast Demo',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const MyHomePage(),
-    );
+    return MaterialApp(title: 'Anchor Toast Demo', home: const HomePage());
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  final AnchorToastController _controller = AnchorToastController();
+class _HomePageState extends State<HomePage> {
+  final _infoController = AnchorToastController();
+  final _warningController = AnchorToastController();
+  final _errorController = AnchorToastController();
+  final _rapidFireController = AnchorToastController();
+  final _longController = AnchorToastController();
+  final _customController = AnchorToastController();
+  final _bottomController = AnchorToastController();
 
   Widget _buildToast(String message, Color color) {
     return Container(
@@ -54,288 +58,225 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _infoController.dispose();
+    _warningController.dispose();
+    _errorController.dispose();
+    _rapidFireController.dispose();
+    _longController.dispose();
+    _customController.dispose();
+    _bottomController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('Anchor Toast Demo'),
-      ),
+      appBar: AppBar(title: const Text('Flutter Anchor Toast ⚓')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: 56,
           children: [
-            const Text(
-              'Anchor Toast Examples',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-
-            // Example 1: Using AnchorToast widget with controller
-            const Text('1. Using AnchorToast widget with controller:'),
-            const SizedBox(height: 8),
             AnchorToast(
-              controller: _controller,
-              child: Builder(
-                builder: (context) => ElevatedButton(
-                  onPressed: () {
-                    _controller.showToast(
-                      context: context,
-                      toast: _buildToast('Hello from controller!', Colors.blue),
-                      duration: const Duration(seconds: 3),
-                    );
-                  },
-                  child: const Text('Show Controller Toast'),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Example 2: Using context extension
-            const Text('2. Using context extension:'),
-            const SizedBox(height: 8),
-            Builder(
-              builder: (context) => ElevatedButton(
+              controller: _infoController,
+              child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () {
-                  context.showAnchorToast(
-                    toast: _buildToast('Extension method toast!', Colors.green),
+                  _infoController.showToast(
+                    toast: _buildToast('Info toast', Colors.blue),
+                    duration: const Duration(seconds: 3),
+                  );
+                },
+                child: const Text('Info'),
+              ),
+            ),
+
+            AnchorToast(
+              controller: _warningController,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  _warningController.showToast(
+                    toast: _buildToast('Warning toast', Colors.orange),
                     duration: const Duration(seconds: 2),
                   );
                 },
-                child: const Text('Show Extension Toast'),
+                child: const Text('Warning'),
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            // Example 3: Different toast styles
-            const Text('3. Different toast styles:'),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Builder(
-                    builder: (context) => ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        context.showAnchorToast(
-                          toast: _buildToast('Warning!', Colors.orange),
-                          duration: const Duration(seconds: 2),
-                        );
-                      },
-                      child: const Text('Warning'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Builder(
-                    builder: (context) => ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        context.showAnchorToast(
-                          toast: _buildToast('Error occurred!', Colors.red),
-                          duration: const Duration(seconds: 2),
-                        );
-                      },
-                      child: const Text('Error'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Animation Performance Test
-            const Text('6. Animation Performance Test:'),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Builder(
-                    builder: (context) => ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () async {
-                        // Show multiple toasts in sequence to test smoothness
-                        for (int i = 1; i <= 3; i++) {
-                          // Use a separate context check for each iteration
-                          if (context.mounted) {
-                            context.showAnchorToast(
-                              toast: _buildToast('Toast $i', Colors.deepPurple),
-                              duration: const Duration(milliseconds: 800),
-                            );
-                          }
-                          await Future.delayed(
-                            const Duration(milliseconds: 300),
-                          );
-                        }
-                      },
-                      child: const Text('Rapid Fire'),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Builder(
-                    builder: (context) => ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        context.showAnchorToast(
-                          toast: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Colors.teal, Colors.cyan],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.teal.withValues(alpha: 0.3),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.rocket_launch, color: Colors.white),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Smooth Animation!',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          duration: const Duration(seconds: 3),
-                        );
-                      },
-                      child: const Text('Fancy Toast'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Example 4: Custom toast widget
-            const Text('4. Custom toast widget:'),
-            const SizedBox(height: 8),
-            Builder(
-              builder: (context) => ElevatedButton(
+            AnchorToast(
+              controller: _errorController,
+              child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
+                  backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                 ),
                 onPressed: () {
-                  context.showAnchorToast(
-                    toast: Card(
-                      color: Colors.purple,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                  _errorController.showToast(
+                    toast: _buildToast('Error toast', Colors.red),
+                    duration: const Duration(seconds: 2),
+                  );
+                },
+                child: const Text('Error'),
+              ),
+            ),
+
+            AnchorToast(
+              controller: _rapidFireController,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () async {
+                  for (int i = 1; i <= 3; i++) {
+                    if (context.mounted) {
+                      _rapidFireController.showToast(
+                        toast: _buildToast('Toast $i', Colors.deepPurple),
+                        duration: const Duration(milliseconds: 800),
+                      );
+                    }
+                    await Future.delayed(const Duration(milliseconds: 300));
+                  }
+                },
+                child: const Text('Rapid Fire'),
+              ),
+            ),
+
+            AnchorToast(
+              controller: _longController,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  _longController.showToast(
+                    toast: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Colors.teal, Colors.cyan],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.teal.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Text.rich(
+                        TextSpan(
                           children: [
-                            const Icon(Icons.star, color: Colors.white),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Custom Toast!',
-                              style: TextStyle(color: Colors.white),
+                            WidgetSpan(
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 4),
+                                child: Icon(
+                                  Icons.rocket_launch,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                            TextSpan(
+                              text:
+                                  'Dolor ullamco commodo ea laborum non. Commodo duis fugiat tempor deserunt non incididunt magna et ullamco id. Deserunt reprehenderit ea occaecat proident mollit aliquip non.',
                             ),
                           ],
+                        ),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     duration: const Duration(seconds: 3),
                   );
                 },
-                child: const Text('Show Custom Toast'),
+                child: const Text('Long Message'),
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            // Manual dismiss button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                _controller.dismiss();
-              },
-              child: const Text('Dismiss Current Toast'),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Position test buttons
-            const Text('5. Position testing (top and bottom):'),
-            const SizedBox(height: 8),
-
-            // Top button
-            Center(
-              child: Builder(
-                builder: (context) => ElevatedButton(
-                  onPressed: () {
-                    context.showAnchorToast(
-                      toast: _buildToast('Toast from top!', Colors.teal),
-                      duration: const Duration(seconds: 2),
-                    );
-                  },
-                  child: const Text('Top Button'),
+            AnchorToast(
+              controller: _customController,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.purple,
+                  foregroundColor: Colors.white,
                 ),
+                onPressed: () {
+                  _customController.showToast(
+                    toast: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                        child: ColoredBox(
+                          color: Colors.blue.withValues(alpha: 0.2),
+                          child: FlutterLogo(size: 200),
+                        ),
+                      ),
+                    ),
+                    duration: const Duration(seconds: 3),
+                  );
+                },
+                child: const Text('Custom Widget'),
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            // Bottom button
-            Center(
-              child: Builder(
-                builder: (context) => ElevatedButton(
-                  onPressed: () {
-                    context.showAnchorToast(
-                      toast: _buildToast('Toast from bottom!', Colors.indigo),
-                      duration: const Duration(seconds: 2),
-                    );
-                  },
-                  child: const Text('Bottom Button'),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 32),
           ],
+        ),
+      ),
+      bottomNavigationBar: AnchorToast(
+        controller: _bottomController,
+        child: Container(
+          color: Colors.indigo[100]!,
+          padding: EdgeInsets.only(top: 8),
+          child: SafeArea(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              spacing: 8,
+              children: [
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    _bottomController.showToast(
+                      toast: _buildToast('Bottom navbar toast', Colors.indigo),
+                      duration: const Duration(seconds: 2),
+                    );
+                  },
+                  child: const Text('Bottom'),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    _infoController.dismiss();
+                    _warningController.dismiss();
+                    _errorController.dismiss();
+                    _rapidFireController.dismiss();
+                    _longController.dismiss();
+                    _customController.dismiss();
+                    _bottomController.dismiss();
+                  },
+                  child: const Text('Dismiss All Toasts'),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

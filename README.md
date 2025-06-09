@@ -2,33 +2,19 @@
 
 A Flutter package for displaying contextual toasts anchored to widgets with smart positioning and smooth animations.
 
+| ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/preview/1.jpg) | ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/preview/2.gif) | ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/preview/3.gif) |
+| :-------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------: |
+
 ## Features
 
 - 🎯 **Smart Positioning**: Automatically determines whether to show toasts above or below the anchor widget based on available space
 - 🎨 **Smooth Animations**: Beautiful scale and opacity animations for toast appearance and disappearance
 - ⏰ **Auto-dismiss**: Toasts automatically disappear after a specified duration
 - 🎮 **Manual Control**: Dismiss toasts manually using the controller
-- 🧩 **Simple API**: Easy-to-use widget wrapper and extension methods
+- 🧩 **Simple API**: Easy-to-use widget wrapper with controller
 - 📱 **Overlay Support**: Uses Flutter's Overlay system for proper z-index handling
 
-## Installation
-
-Add this to your package's `pubspec.yaml` file:
-
-```yaml
-dependencies:
-  anchor_toast: ^0.0.1
-```
-
-Then run:
-
-```bash
-flutter pub get
-```
-
 ## Usage
-
-### Method 1: Using AnchorToast Widget with Controller
 
 ```dart
 import 'package:anchor_toast/anchor_toast.dart';
@@ -54,7 +40,6 @@ class _MyWidgetState extends State<MyWidget> {
       child: ElevatedButton(
         onPressed: () {
           _controller.showToast(
-            context: context,
             toast: Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -76,54 +61,6 @@ class _MyWidgetState extends State<MyWidget> {
 }
 ```
 
-### Method 2: Using Context Extension (Simpler)
-
-```dart
-import 'package:anchor_toast/anchor_toast.dart';
-
-Builder(
-  builder: (context) => ElevatedButton(
-    onPressed: () {
-      context.showAnchorToast(
-        toast: Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.green,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            'Success!',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-        duration: Duration(seconds: 3),
-      );
-    },
-    child: Text('Show Toast'),
-  ),
-)
-```
-
-### Method 3: Manual Controller Usage
-
-```dart
-final controller = AnchorToastController();
-
-// Show toast
-controller.showToast(
-  context: context,
-  toast: YourCustomToastWidget(),
-  duration: Duration(seconds: 2),
-  offset: 12.0, // Optional: custom offset from anchor
-);
-
-// Manually dismiss
-controller.dismiss();
-
-// Don't forget to dispose
-controller.dispose();
-```
-
 ## API Reference
 
 ### AnchorToastController
@@ -132,16 +69,16 @@ The main controller class for managing toast displays.
 
 #### Methods
 
-- `showToast({required BuildContext context, required Widget toast, required Duration duration, double offset = 8.0})` - Shows a toast anchored to the provided context
+- `showToast({required Widget toast, required Duration duration, double offset = 8.0, bool enableHapticFeedback = true})` - Shows a toast anchored to the registered context
 - `dismiss()` - Manually dismisses the currently shown toast
 - `dispose()` - Disposes the controller and cleans up resources
 
 #### Parameters
 
-- `context` - The build context of the anchor widget
 - `toast` - The widget to display as toast
 - `duration` - How long to show the toast before auto-dismissing
 - `offset` - Additional offset from the anchor (default: 8.0)
+- `enableHapticFeedback` - Whether to provide haptic feedback (default: true)
 
 ### AnchorToast Widget
 
@@ -151,22 +88,8 @@ A wrapper widget that provides toast functionality to its child.
 AnchorToast({
   Key? key,
   required Widget child,
-  AnchorToastController? controller, // Optional: provide your own controller
+  required AnchorToastController controller, // Required controller
 })
-```
-
-### Extension Methods
-
-#### BuildContext.showAnchorToast
-
-A convenient extension method for showing toasts directly from any BuildContext.
-
-```dart
-context.showAnchorToast({
-  required Widget toast,
-  required Duration duration,
-  double offset = 8.0,
-});
 ```
 
 ## Customization Examples
@@ -174,8 +97,11 @@ context.showAnchorToast({
 ### Custom Toast Styles
 
 ```dart
-// Success toast
-context.showAnchorToast(
+// Success toast with controller
+final controller = AnchorToastController();
+
+// Must be used within an AnchorToast widget
+controller.showToast(
   toast: Container(
     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     decoration: BoxDecoration(
@@ -201,8 +127,8 @@ context.showAnchorToast(
   duration: Duration(seconds: 2),
 );
 
-// Error toast
-context.showAnchorToast(
+// Error toast with controller
+controller.showToast(
   toast: Material(
     color: Colors.red,
     borderRadius: BorderRadius.circular(8),
@@ -215,6 +141,7 @@ context.showAnchorToast(
     ),
   ),
   duration: Duration(seconds: 3),
+  enableHapticFeedback: false, // Disable haptic feedback for error toasts
 );
 ```
 
@@ -223,7 +150,7 @@ context.showAnchorToast(
 The package automatically determines the best position (above or below) based on available space, but you can influence this by adjusting the `offset` parameter:
 
 ```dart
-context.showAnchorToast(
+controller.showToast(
   toast: YourToastWidget(),
   duration: Duration(seconds: 2),
   offset: 16.0, // Larger offset for more spacing
@@ -232,11 +159,13 @@ context.showAnchorToast(
 
 ## Smart Positioning
 
-The package automatically calculates available space above and below the anchor widget and chooses the optimal position:
+The package automatically calculates available space and chooses the optimal position using sophisticated logic:
 
-- If there's more space below and enough room (> 100px), shows below
-- If there's more space above, shows above
-- Gracefully handles edge cases near screen boundaries
+- **Center-based positioning**: If the anchor is below the vertical center of the screen, prefers showing above
+- **Space-based fallback**: If there's insufficient space below (< 100px) and more space above, shows above
+- **Horizontal centering**: Toasts are centered relative to the anchor widget
+- **Screen boundary handling**: Automatically adjusts horizontal position to keep toasts on screen
+- **Minimum padding**: Maintains 16px minimum padding from screen edges
 
 ## Animation Details
 
@@ -245,31 +174,33 @@ Toasts use a sophisticated multi-layered animation system for the smoothest poss
 - **Scale Animation**: Uses `Curves.easeOutCubic` optimized for high refresh rate displays
 - **Opacity Animation**: Staggered timing with `Interval(0.0, 0.8)` for better visual layering  
 - **Slide Animation**: Subtle slide motion with `Interval(0.1, 1.0)` for natural feel
-- **Duration**: 400ms for smooth, polished animations
+- **Duration**: 300ms for smooth, polished animations
 - **Performance**: RepaintBoundary widgets isolate repaints for 60/120fps performance
-- **Haptic Feedback**: Optional light haptic feedback for enhanced UX
+- **Haptic Feedback**: Optional light haptic feedback for enhanced UX (enabled by default)
 
 ## Best Practices
 
 1. **Always dispose controllers**: Make sure to call `dispose()` on controllers in your widget's `dispose()` method
-2. **Use context extension for simple cases**: For one-off toasts, use `context.showAnchorToast()`
+2. **Use AnchorToast widget**: Always wrap your anchor widget with `AnchorToast` for proper context registration
 3. **Reuse controllers**: For multiple toasts from the same widget, reuse the same controller
 4. **Keep toast content concise**: Toasts work best with short, clear messages
 5. **Consider accessibility**: Ensure toast content is readable and accessible
+6. **Controller required**: Always provide a controller to the AnchorToast widget
 
 ## Troubleshooting
 
 ### Toast not appearing
 - Make sure the context has access to an Overlay (usually provided by MaterialApp or WidgetsApp)
-- Verify that the context belongs to a widget that's currently mounted
+- Verify that the controller is being used within an `AnchorToast` widget
+- Ensure the anchor widget is currently mounted
 
 ### Toast positioning issues
 - The package calculates position based on the anchor widget's render box
 - Make sure the anchor widget has been laid out before showing the toast
 
 ### Memory leaks
-- Always dispose of AnchorToastController instances
-- The context extension method creates and disposes controllers automatically
+- Always dispose of AnchorToastController instances in your widget's dispose method
+- The AnchorToast widget automatically unregisters the controller when disposed
 
 ## Contributing
 
