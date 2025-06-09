@@ -39,3 +39,6 @@ example/macos/
 example/web/
 example/.metadata
 example/assets/
+
+# Preview images
+preview/
