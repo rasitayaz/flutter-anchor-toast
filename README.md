@@ -1,5 +1,10 @@
 # Flutter Anchor Toast ⚓
 
+[![pub](https://badges.genua.fr/pub/v/anchor_toast)](https://pub.dev/packages/anchor_toast)
+[![pub likes](https://badges.genua.fr/pub/likes/anchor_toast)](https://pub.dev/packages/anchor_toast)
+[![github](https://img.shields.io/badge/github-rasitayaz-red)](https://github.com/rasitayaz)
+[![buy me a coffee](https://img.shields.io/badge/buy&nbsp;me&nbsp;a&nbsp;coffee-donate-gold)](https://buymeacoffee.com/rasitayaz)
+
 A Flutter package for displaying contextual toasts anchored to widgets with smart positioning and smooth animations.
 
 | ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/main/preview/1.jpg) | ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/main/preview/2.gif) | ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/main/preview/3.gif) |
