@@ -16,12 +16,12 @@
 
 ### Features
 
-- ✅ Smart positioning above/below anchor based on available space
-- ✅ Scale and opacity animations with smooth curves
-- ✅ Auto-dismiss with configurable duration
-- ✅ Manual dismiss capability
-- ✅ Clean and simple API with `AnchorToast` widget and controller
-- ✅ Proper memory management and cleanup
-- ✅ Comprehensive test coverage
-- ✅ Example app with various use cases
-- ✅ Full documentation and API reference
+- Smart positioning above/below anchor based on available space
+- Scale and opacity animations with smooth curves
+- Auto-dismiss with configurable duration
+- Manual dismiss capability
+- Clean and simple API with `AnchorToast` widget and controller
+- Proper memory management and cleanup
+- Comprehensive test coverage
+- Example app with various use cases
+- Full documentation and API reference
