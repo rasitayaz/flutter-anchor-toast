@@ -2,7 +2,7 @@
 
 A Flutter package for displaying contextual toasts anchored to widgets with smart positioning and smooth animations.
 
-| ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/preview/1.jpg) | ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/preview/2.gif) | ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/preview/3.gif) |
+| ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/main/preview/1.jpg) | ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/main/preview/2.gif) | ![](https://raw.githubusercontent.com/rasitayaz/flutter-anchor-toast/main/preview/3.gif) |
 | :-------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------: |
 
 ## Features
