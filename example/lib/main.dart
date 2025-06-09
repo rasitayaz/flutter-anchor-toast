@@ -87,7 +87,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 onPressed: () {
                   _infoController.showToast(
-                    toast: _buildToast('Hello world!', Colors.blue),
+                    toast: _buildToast('Info toast', Colors.blue),
                     duration: const Duration(seconds: 3),
                   );
                 },
@@ -104,7 +104,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 onPressed: () {
                   _warningController.showToast(
-                    toast: _buildToast('Warning!', Colors.orange),
+                    toast: _buildToast('Warning toast', Colors.orange),
                     duration: const Duration(seconds: 2),
                   );
                 },
@@ -121,7 +121,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 onPressed: () {
                   _errorController.showToast(
-                    toast: _buildToast('Error occurred!', Colors.red),
+                    toast: _buildToast('Error toast', Colors.red),
                     duration: const Duration(seconds: 2),
                   );
                 },
@@ -252,10 +252,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   onPressed: () {
                     _bottomController.showToast(
-                      toast: _buildToast(
-                        'Toast from bottom navbar!',
-                        Colors.indigo,
-                      ),
+                      toast: _buildToast('Bottom navbar toast', Colors.indigo),
                       duration: const Duration(seconds: 2),
                     );
                   },
