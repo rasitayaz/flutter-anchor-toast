@@ -1,6 +1,6 @@
 name: anchor_toast
 description: "A Flutter package for displaying contextual toasts anchored to widgets with smart positioning and smooth animations."
-version: 0.0.2
+version: 0.0.1
 homepage: https://github.com/rasitayaz/flutter-anchor-toast
 
 environment:

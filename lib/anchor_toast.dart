@@ -8,78 +8,110 @@ class AnchorToastController {
   AnimationController? _animationController;
   Timer? _autoHideTimer;
   bool _isDisposed = false;
-  bool _isTemporary = false; // For extension method usage
+  BuildContext? _anchorContext;
 
-  /// Shows a toast anchored to the provided context.
+  /// Shows a toast anchored to the registered context.
   ///
-  /// [context] - The build context of the anchor widget
   /// [toast] - The widget to display as toast
   /// [duration] - How long to show the toast before auto-dismissing
   /// [offset] - Additional offset from the anchor (default: 8.0)
   /// [enableHapticFeedback] - Whether to provide haptic feedback (default: true)
   void showToast({
-    required BuildContext context,
     required Widget toast,
     required Duration duration,
     double offset = 8.0,
     bool enableHapticFeedback = true,
   }) {
-    if (_isDisposed) return;
+    if (_isDisposed || _anchorContext == null || !_anchorContext!.mounted) {
+      return;
+    }
 
-    // Provide haptic feedback for better UX
+    final context = _anchorContext!;
+
     if (enableHapticFeedback) {
       HapticFeedback.lightImpact();
     }
 
-    // Dismiss any existing toast first
-    dismiss();
+    _immediateCleanup();
 
     final overlay = Overlay.of(context);
     final renderBox = context.findRenderObject() as RenderBox;
     final size = renderBox.size;
     final position = renderBox.localToGlobal(Offset.zero);
 
-    // Get screen size for positioning calculations
     final screenSize = MediaQuery.of(context).size;
-    final availableSpaceBelow = screenSize.height - position.dy - size.height;
-    final availableSpaceAbove = position.dy;
+    final padding = MediaQuery.of(context).padding;
+    final availableSpaceBelow =
+        screenSize.height - position.dy - size.height - padding.bottom;
+    final availableSpaceAbove = position.dy - padding.top;
 
-    // Determine if toast should appear above or below
+    // Check if the anchor is below the vertical center of the screen
+    final anchorCenterY = position.dy + (size.height / 2);
+    final screenCenterY = screenSize.height / 2;
+    final anchorBelowCenter = anchorCenterY > screenCenterY;
+
     final showAbove =
-        availableSpaceBelow < 100 && availableSpaceAbove > availableSpaceBelow;
+        anchorBelowCenter ||
+        (availableSpaceBelow < 100 &&
+            availableSpaceAbove > availableSpaceBelow);
 
-    _overlayEntry = OverlayEntry(
+    // Calculate proper positioning for the toast
+    const double screenPadding = 16.0;
+    final double anchorCenterX = position.dx + (size.width / 2);
+
+    // Adjust horizontal position to keep toast on screen
+    double adjustedX = anchorCenterX;
+    // We'll estimate a reasonable max toast width for positioning
+    final double maxToastWidth = screenSize.width - (screenPadding * 2);
+    final double halfToastWidth = maxToastWidth / 2;
+
+    if (anchorCenterX - halfToastWidth < screenPadding) {
+      adjustedX = screenPadding + halfToastWidth;
+    } else if (anchorCenterX + halfToastWidth >
+        screenSize.width - screenPadding) {
+      adjustedX = screenSize.width - screenPadding - halfToastWidth;
+    }
+
+    final adjustedPosition = Offset(adjustedX - (size.width / 2), position.dy);
+
+    OverlayEntry? currentOverlay;
+    AnimationController? currentController;
+    Timer? currentTimer;
+
+    currentOverlay = OverlayEntry(
       builder: (context) => _ToastWidget(
-        position: position,
+        position: adjustedPosition,
         anchorSize: size,
         toast: toast,
         showAbove: showAbove,
         offset: offset,
+        screenSize: screenSize,
+        screenPadding: padding,
         onAnimationComplete: (controller) {
-          if (!_isDisposed) {
+          currentController = controller;
+          if (currentOverlay == _overlayEntry && !_isDisposed) {
             _animationController = controller;
           }
         },
         onDispose: () {
-          // Clean up when the toast widget disposes itself
-          _animationController = null;
-          // If this is a temporary controller (from extension), dispose it
-          if (_isTemporary && !_isDisposed) {
-            dispose();
+          currentController = null;
+          if (currentOverlay == _overlayEntry) {
+            _animationController = null;
           }
         },
       ),
     );
 
+    _overlayEntry = currentOverlay;
     overlay.insert(_overlayEntry!);
 
-    // Auto-dismiss after duration
     _autoHideTimer?.cancel();
-    _autoHideTimer = Timer(duration, () {
-      if (!_isDisposed) {
-        dismiss();
+    currentTimer = Timer(duration, () {
+      if (currentOverlay == _overlayEntry && !_isDisposed) {
+        _dismissWithController(currentOverlay, currentController);
       }
     });
+    _autoHideTimer = currentTimer;
   }
 
   /// Manually dismisses the currently shown toast.
@@ -89,24 +121,26 @@ class AnchorToastController {
     _autoHideTimer?.cancel();
     _autoHideTimer = null;
 
-    if (_overlayEntry != null && _animationController != null) {
-      // Only animate if controller is in a valid state
-      if (_animationController!.status == AnimationStatus.completed ||
-          _animationController!.status == AnimationStatus.forward) {
-        try {
-          _animationController!.reverse().then((_) {
-            if (!_isDisposed && _overlayEntry != null) {
-              _overlayEntry!.remove();
-              _overlayEntry = null;
-            }
-          });
-        } catch (e) {
-          // Animation controller might be disposed
+    if (_overlayEntry != null) {
+      if (_animationController != null) {
+        if (_animationController!.status == AnimationStatus.completed ||
+            _animationController!.status == AnimationStatus.forward) {
+          try {
+            _animationController!.reverse().then((_) {
+              if (!_isDisposed && _overlayEntry != null) {
+                _overlayEntry!.remove();
+                _overlayEntry = null;
+              }
+            });
+          } catch (e) {
+            _overlayEntry?.remove();
+            _overlayEntry = null;
+          }
+        } else {
           _overlayEntry?.remove();
           _overlayEntry = null;
         }
       } else {
-        // If animation isn't complete, remove immediately
         _overlayEntry?.remove();
         _overlayEntry = null;
       }
@@ -124,6 +158,60 @@ class AnchorToastController {
     _overlayEntry?.remove();
     _overlayEntry = null;
     _animationController = null;
+    _anchorContext = null;
+  }
+
+  /// Registers the anchor context with this controller.
+  /// This method is called internally by the AnchorToast widget.
+  void _registerContext(BuildContext context) {
+    _anchorContext = context;
+  }
+
+  /// Unregisters the anchor context from this controller.
+  /// This method is called internally by the AnchorToast widget.
+  void _unregisterContext() {
+    _anchorContext = null;
+  }
+
+  /// Immediately cleans up any existing toast without animation.
+  /// Used internally to prevent conflicts during rapid successive calls.
+  void _immediateCleanup() {
+    _autoHideTimer?.cancel();
+    _autoHideTimer = null;
+
+    if (_overlayEntry != null) {
+      _overlayEntry!.remove();
+      _overlayEntry = null;
+    }
+  }
+
+  /// Dismisses a specific toast with its animation controller.
+  /// Used internally to handle auto-dismiss with the correct controller.
+  void _dismissWithController(
+    OverlayEntry? overlay,
+    AnimationController? controller,
+  ) {
+    if (_isDisposed || overlay == null || overlay != _overlayEntry) return;
+
+    if (controller != null &&
+        (controller.status == AnimationStatus.completed ||
+            controller.status == AnimationStatus.forward)) {
+      try {
+        controller.reverse().then((_) {
+          if (!_isDisposed && overlay == _overlayEntry) {
+            overlay.remove();
+            _overlayEntry = null;
+          }
+        });
+        return;
+      } catch (e) {
+        // Fall through to immediate removal
+      }
+    }
+
+    // Immediate removal for cases where animation is not available or failed
+    overlay.remove();
+    _overlayEntry = null;
   }
 }
 
@@ -134,6 +222,8 @@ class _ToastWidget extends StatefulWidget {
   final Widget toast;
   final bool showAbove;
   final double offset;
+  final Size screenSize;
+  final EdgeInsets screenPadding;
   final Function(AnimationController) onAnimationComplete;
   final VoidCallback onDispose;
 
@@ -143,6 +233,8 @@ class _ToastWidget extends StatefulWidget {
     required this.toast,
     required this.showAbove,
     required this.offset,
+    required this.screenSize,
+    required this.screenPadding,
     required this.onAnimationComplete,
     required this.onDispose,
   });
@@ -162,29 +254,27 @@ class _ToastWidgetState extends State<_ToastWidget>
   void initState() {
     super.initState();
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
-    // Use consistent curves optimized for high refresh rate displays
-    final curve = CurvedAnimation(
-      parent: _animationController,
-      curve: Curves
-          .easeOutCubic, // Smoother than easeOutBack for high refresh rates
-      reverseCurve: Curves.easeInCubic,
+    _scaleAnimation = Tween(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeOutCubic,
+        reverseCurve: const Threshold(0.0),
+      ),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(curve);
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _opacityAnimation = Tween(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: const Interval(0.0, 0.8, curve: Curves.easeOut),
       ),
     );
 
-    // Subtle slide animation for more natural feel
     _slideAnimation =
-        Tween<Offset>(
+        Tween(
           begin: widget.showAbove
               ? const Offset(0, 0.2)
               : const Offset(0, -0.2),
@@ -193,12 +283,12 @@ class _ToastWidgetState extends State<_ToastWidget>
           CurvedAnimation(
             parent: _animationController,
             curve: const Interval(0.1, 1.0, curve: Curves.easeOutCubic),
+            reverseCurve: const Threshold(0.0),
           ),
         );
 
     widget.onAnimationComplete(_animationController);
 
-    // Start animation on next frame for optimal performance
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _animationController.status == AnimationStatus.dismissed) {
         _animationController.forward();
@@ -219,31 +309,38 @@ class _ToastWidgetState extends State<_ToastWidget>
         ? widget.position.dy - widget.offset
         : widget.position.dy + widget.anchorSize.height + widget.offset;
 
+    // Calculate horizontal positioning with screen boundary constraints
+    const double screenPadding = 16.0; // Minimum padding from screen edges
+    final double anchorCenterX =
+        widget.position.dx + (widget.anchorSize.width / 2);
+
     return Positioned(
-      left: widget.position.dx + (widget.anchorSize.width / 2),
+      left: anchorCenterX,
       top: toastY,
       child: RepaintBoundary(
         child: AnimatedBuilder(
           animation: _animationController,
           builder: (context, child) {
-            return FractionalTranslation(
-              translation: Offset(
-                -0.5, // Center horizontally
-                widget.showAbove ? -1.0 : 0.0, // Adjust vertical positioning
+            return ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: widget.screenSize.width - (screenPadding * 2),
               ),
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  alignment: widget.showAbove
-                      ? Alignment.bottomCenter
-                      : Alignment.topCenter,
-                  child: FadeTransition(
-                    opacity: _opacityAnimation,
-                    child: RepaintBoundary(
-                      child: Material(
-                        color: Colors.transparent,
-                        child: widget.toast,
+              child: FractionalTranslation(
+                translation: Offset(-0.5, widget.showAbove ? -1.0 : 0.0),
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    alignment: widget.showAbove
+                        ? Alignment.bottomCenter
+                        : Alignment.topCenter,
+                    child: FadeTransition(
+                      opacity: _opacityAnimation,
+                      child: RepaintBoundary(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: widget.toast,
+                        ),
                       ),
                     ),
                   ),
@@ -260,57 +357,33 @@ class _ToastWidgetState extends State<_ToastWidget>
 /// A widget that wraps an anchor widget and provides toast functionality.
 class AnchorToast extends StatefulWidget {
   final Widget child;
-  final AnchorToastController? controller;
+  final AnchorToastController controller;
 
-  const AnchorToast({super.key, required this.child, this.controller});
+  const AnchorToast({super.key, required this.child, required this.controller});
 
   @override
   State<AnchorToast> createState() => _AnchorToastState();
 }
 
 class _AnchorToastState extends State<AnchorToast> {
-  late AnchorToastController _controller;
-
   @override
   void initState() {
     super.initState();
-    _controller = widget.controller ?? AnchorToastController();
   }
 
   @override
   void dispose() {
-    if (widget.controller == null) {
-      _controller.dispose();
-    }
+    widget.controller._unregisterContext();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Register the context with the controller every time we build
+    widget.controller._registerContext(context);
     return widget.child;
   }
 
   /// Gets the controller for this AnchorToast widget.
-  AnchorToastController get controller => _controller;
-}
-
-/// Extension to make it easier to show toasts from any widget.
-extension AnchorToastExtension on BuildContext {
-  /// Shows a toast anchored to this context.
-  void showAnchorToast({
-    required Widget toast,
-    required Duration duration,
-    double offset = 8.0,
-    bool enableHapticFeedback = true,
-  }) {
-    // Create a temporary controller that will auto-dispose
-    final controller = AnchorToastController().._isTemporary = true;
-    controller.showToast(
-      context: this,
-      toast: toast,
-      duration: duration,
-      offset: offset,
-      enableHapticFeedback: enableHapticFeedback,
-    );
-  }
+  AnchorToastController get controller => widget.controller;
 }
