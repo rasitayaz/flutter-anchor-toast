@@ -1,4 +1,4 @@
-# Anchor Toast ⚓
+# Flutter Anchor Toast ⚓
 
 A Flutter package for displaying contextual toasts anchored to widgets with smart positioning and smooth animations.
 
