@@ -1,13 +1,25 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 ### Added
-* **Customizable Horizontal Padding**: New `horizontalPadding` parameter in `showToast()` method allows control over screen edge padding
+* **Customizable Screen Padding**: New `screenPadding` parameter in `showToast()` method allows control over screen edge padding
   - Default value remains 16.0 pixels for backward compatibility
   - Controls minimum distance between toast and screen edges
   - Affects toast positioning and maximum width calculations
   - Applies to both automatic positioning and manual position updates during scrolling
+
+### Improved
+* **Enhanced Keyboard-Aware Positioning**: Comprehensive keyboard and view insets handling for optimal toast placement
+  - **Real-time Keyboard Tracking**: Automatic repositioning when keyboard appears/disappears using view insets monitoring
+  - **Vertical Bounds Checking**: Toasts are automatically clamped within safe screen bounds considering keyboard height
+  - **Unified Position Calculation**: Single positioning logic ensures consistency between initial placement and dynamic updates
+  - **Optimized ValueNotifier Lifecycle**: Position notifier is now reused across multiple toasts for better memory efficiency
+
+### Fixed
+* **Null Safety Improvements**: Removed all null assertion operators (`!`) and replaced with safe null-checking patterns
+* **Position Calculation Consistency**: Unified the initial toast positioning and scroll-based repositioning logic to prevent discrepancies
+* **Memory Optimization**: Position notifier is no longer recreated for each toast, reducing garbage collection overhead
 
 ## 0.1.0
 
