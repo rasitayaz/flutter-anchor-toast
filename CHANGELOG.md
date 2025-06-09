@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+* **Customizable Horizontal Padding**: New `horizontalPadding` parameter in `showToast()` method allows control over screen edge padding
+  - Default value remains 16.0 pixels for backward compatibility
+  - Controls minimum distance between toast and screen edges
+  - Affects toast positioning and maximum width calculations
+  - Applies to both automatic positioning and manual position updates during scrolling
+
 ## 0.1.0
 
 ### Added

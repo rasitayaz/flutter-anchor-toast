@@ -11,6 +11,7 @@ class AnchorToastController {
   BuildContext? _anchorContext;
   StreamSubscription<void>? _scrollSubscription;
   ValueNotifier<Offset>? _positionNotifier;
+  double _horizontalPadding = 16.0;
 
   /// Shows a toast anchored to the registered context.
   ///
@@ -19,18 +20,21 @@ class AnchorToastController {
   /// [offset] - Additional offset from the anchor (default: 8.0)
   /// [enableHapticFeedback] - Whether to provide haptic feedback (default: true)
   /// [showAbove] - Override automatic positioning: true for above, false for below, null for automatic
+  /// [horizontalPadding] - Minimum padding from screen edges (default: 16.0)
   void showToast({
     required Widget toast,
     required Duration duration,
     double offset = 8.0,
     bool enableHapticFeedback = true,
     bool? showAbove,
+    double horizontalPadding = 16.0,
   }) {
     if (_isDisposed || _anchorContext == null || !_anchorContext!.mounted) {
       return;
     }
 
     final context = _anchorContext!;
+    _horizontalPadding = horizontalPadding;
 
     if (enableHapticFeedback) {
       HapticFeedback.lightImpact();
@@ -72,20 +76,19 @@ class AnchorToastController {
                 availableSpaceAbove > availableSpaceBelow));
 
     // Calculate proper positioning for the toast
-    const double screenPadding = 16.0;
-    final double anchorCenterX = position.dx + (size.width / 2);
+    final anchorCenterX = position.dx + (size.width / 2);
 
     // Adjust horizontal position to keep toast on screen
     double adjustedX = anchorCenterX;
     // We'll estimate a reasonable max toast width for positioning
-    final double maxToastWidth = screenSize.width - (screenPadding * 2);
-    final double halfToastWidth = maxToastWidth / 2;
+    final maxToastWidth = screenSize.width - (horizontalPadding * 2);
+    final halfToastWidth = maxToastWidth / 2;
 
-    if (anchorCenterX - halfToastWidth < screenPadding) {
-      adjustedX = screenPadding + halfToastWidth;
+    if (anchorCenterX - halfToastWidth < horizontalPadding) {
+      adjustedX = horizontalPadding + halfToastWidth;
     } else if (anchorCenterX + halfToastWidth >
-        screenSize.width - screenPadding) {
-      adjustedX = screenSize.width - screenPadding - halfToastWidth;
+        screenSize.width - horizontalPadding) {
+      adjustedX = screenSize.width - horizontalPadding - halfToastWidth;
     }
 
     final adjustedPosition = Offset(adjustedX - (size.width / 2), position.dy);
@@ -109,7 +112,7 @@ class AnchorToastController {
         showAbove: shouldShowAbove,
         offset: offset,
         screenSize: screenSize,
-        screenPadding: padding,
+        screenPadding: EdgeInsets.all(horizontalPadding),
         positionNotifier: _positionNotifier!,
         onAnimationComplete: (controller) {
           currentController = controller;
@@ -293,19 +296,18 @@ class AnchorToastController {
       final screenSize = MediaQuery.of(_anchorContext!).size;
 
       // Calculate proper positioning for the toast (same logic as in showToast)
-      const double screenPadding = 16.0;
-      final double anchorCenterX = position.dx + (size.width / 2);
+      final anchorCenterX = position.dx + (size.width / 2);
 
       // Adjust horizontal position to keep toast on screen
       double adjustedX = anchorCenterX;
-      final double maxToastWidth = screenSize.width - (screenPadding * 2);
-      final double halfToastWidth = maxToastWidth / 2;
+      final maxToastWidth = screenSize.width - (_horizontalPadding * 2);
+      final halfToastWidth = maxToastWidth / 2;
 
-      if (anchorCenterX - halfToastWidth < screenPadding) {
-        adjustedX = screenPadding + halfToastWidth;
+      if (anchorCenterX - halfToastWidth < _horizontalPadding) {
+        adjustedX = _horizontalPadding + halfToastWidth;
       } else if (anchorCenterX + halfToastWidth >
-          screenSize.width - screenPadding) {
-        adjustedX = screenSize.width - screenPadding - halfToastWidth;
+          screenSize.width - _horizontalPadding) {
+        adjustedX = screenSize.width - _horizontalPadding - halfToastWidth;
       }
 
       final adjustedPosition = Offset(
@@ -414,14 +416,14 @@ class _ToastWidgetState extends State<_ToastWidget>
     return ValueListenableBuilder<Offset>(
       valueListenable: widget.positionNotifier,
       builder: (context, position, child) {
-        final double toastY = widget.showAbove
+        final toastY = widget.showAbove
             ? position.dy - widget.offset
             : position.dy + widget.anchorSize.height + widget.offset;
 
         // Calculate horizontal positioning with screen boundary constraints
-        const double screenPadding = 16.0; // Minimum padding from screen edges
-        final double anchorCenterX =
-            position.dx + (widget.anchorSize.width / 2);
+        final screenPaddingValue =
+            widget.screenPadding.left; // Use the padding value
+        final anchorCenterX = position.dx + (widget.anchorSize.width / 2);
 
         return Positioned(
           left: anchorCenterX,
@@ -432,7 +434,8 @@ class _ToastWidgetState extends State<_ToastWidget>
               builder: (context, child) {
                 return ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: widget.screenSize.width - (screenPadding * 2),
+                    maxWidth:
+                        widget.screenSize.width - (screenPaddingValue * 2),
                   ),
                   child: FractionalTranslation(
                     translation: Offset(-0.5, widget.showAbove ? -1.0 : 0.0),
