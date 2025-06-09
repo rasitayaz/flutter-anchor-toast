@@ -12,7 +12,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(title: 'Anchor Toast Demo', home: const HomePage());
+    return MaterialApp(
+      title: 'Anchor Toast Demo',
+      debugShowCheckedModeBanner: false,
+      home: const HomePage(),
+    );
   }
 }
 
