@@ -74,7 +74,7 @@ The main controller class for managing toast displays.
 
 #### Methods
 
-- `showToast({required Widget toast, required Duration duration, double offset = 8.0, bool enableHapticFeedback = true})` - Shows a toast anchored to the registered context
+- `showToast({required Widget toast, required Duration duration, double offset = 8.0, bool enableHapticFeedback = true, bool? showAbove})` - Shows a toast anchored to the registered context
 - `dismiss()` - Manually dismisses the currently shown toast
 - `dispose()` - Disposes the controller and cleans up resources
 
@@ -84,6 +84,7 @@ The main controller class for managing toast displays.
 - `duration` - How long to show the toast before auto-dismissing
 - `offset` - Additional offset from the anchor (default: 8.0)
 - `enableHapticFeedback` - Whether to provide haptic feedback (default: true)
+- `showAbove` - Override automatic positioning: true for above, false for below, null for automatic (default: null)
 
 ### AnchorToast Widget
 
@@ -152,9 +153,31 @@ controller.showToast(
 
 ### Custom Positioning
 
-The package automatically determines the best position (above or below) based on available space, but you can influence this by adjusting the `offset` parameter:
+The package automatically determines the best position (above or below) based on available space, but you can override this behavior:
 
 ```dart
+// Force toast to appear above the anchor
+controller.showToast(
+  toast: YourToastWidget(),
+  duration: Duration(seconds: 2),
+  showAbove: true, // Always show above
+);
+
+// Force toast to appear below the anchor  
+controller.showToast(
+  toast: YourToastWidget(),
+  duration: Duration(seconds: 2),
+  showAbove: false, // Always show below
+);
+
+// Use automatic smart positioning (default behavior)
+controller.showToast(
+  toast: YourToastWidget(),
+  duration: Duration(seconds: 2),
+  showAbove: null, // Smart positioning based on available space
+);
+
+// You can also adjust spacing with the offset parameter
 controller.showToast(
   toast: YourToastWidget(),
   duration: Duration(seconds: 2),
