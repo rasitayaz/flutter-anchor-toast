@@ -9,6 +9,8 @@ class AnchorToastController {
   Timer? _autoHideTimer;
   bool _isDisposed = false;
   BuildContext? _anchorContext;
+  StreamSubscription<void>? _scrollSubscription;
+  ValueNotifier<Offset>? _positionNotifier;
 
   /// Shows a toast anchored to the registered context.
   ///
@@ -16,11 +18,13 @@ class AnchorToastController {
   /// [duration] - How long to show the toast before auto-dismissing
   /// [offset] - Additional offset from the anchor (default: 8.0)
   /// [enableHapticFeedback] - Whether to provide haptic feedback (default: true)
+  /// [showAbove] - Override automatic positioning: true for above, false for below, null for automatic
   void showToast({
     required Widget toast,
     required Duration duration,
     double offset = 8.0,
     bool enableHapticFeedback = true,
+    bool? showAbove,
   }) {
     if (_isDisposed || _anchorContext == null || !_anchorContext!.mounted) {
       return;
@@ -41,19 +45,31 @@ class AnchorToastController {
 
     final screenSize = MediaQuery.of(context).size;
     final padding = MediaQuery.of(context).padding;
+    final viewInsets = MediaQuery.of(context).viewInsets;
+
+    // Calculate available space considering both padding and view insets (keyboard, etc.)
     final availableSpaceBelow =
-        screenSize.height - position.dy - size.height - padding.bottom;
-    final availableSpaceAbove = position.dy - padding.top;
+        screenSize.height -
+        position.dy -
+        size.height -
+        padding.bottom -
+        viewInsets.bottom;
+    final availableSpaceAbove = position.dy - padding.top - viewInsets.top;
 
-    // Check if the anchor is below the vertical center of the screen
+    // Check if the anchor is below the vertical center of the visible screen area
+    final visibleHeight =
+        screenSize.height - viewInsets.top - viewInsets.bottom;
+    final visibleTop = viewInsets.top;
     final anchorCenterY = position.dy + (size.height / 2);
-    final screenCenterY = screenSize.height / 2;
-    final anchorBelowCenter = anchorCenterY > screenCenterY;
+    final visibleCenterY = visibleTop + (visibleHeight / 2);
+    final anchorBelowCenter = anchorCenterY > visibleCenterY;
 
-    final showAbove =
-        anchorBelowCenter ||
-        (availableSpaceBelow < 100 &&
-            availableSpaceAbove > availableSpaceBelow);
+    // Use preferred position if specified, otherwise use automatic positioning
+    final shouldShowAbove =
+        showAbove ??
+        (anchorBelowCenter ||
+            (availableSpaceBelow < 100 &&
+                availableSpaceAbove > availableSpaceBelow));
 
     // Calculate proper positioning for the toast
     const double screenPadding = 16.0;
@@ -74,19 +90,27 @@ class AnchorToastController {
 
     final adjustedPosition = Offset(adjustedX - (size.width / 2), position.dy);
 
+    // Create position notifier for scroll tracking
+    _positionNotifier?.dispose();
+    _positionNotifier = ValueNotifier<Offset>(adjustedPosition);
+
+    // Set up scroll listening
+    _setupScrollListener();
+
     OverlayEntry? currentOverlay;
     AnimationController? currentController;
     Timer? currentTimer;
 
     currentOverlay = OverlayEntry(
       builder: (context) => _ToastWidget(
-        position: adjustedPosition,
+        anchorContext: _anchorContext!,
         anchorSize: size,
         toast: toast,
-        showAbove: showAbove,
+        showAbove: shouldShowAbove,
         offset: offset,
         screenSize: screenSize,
         screenPadding: padding,
+        positionNotifier: _positionNotifier!,
         onAnimationComplete: (controller) {
           currentController = controller;
           if (currentOverlay == _overlayEntry && !_isDisposed) {
@@ -155,6 +179,18 @@ class AnchorToastController {
     _autoHideTimer?.cancel();
     _autoHideTimer = null;
 
+    // Clean up scroll listener
+    if (_anchorContext != null && _anchorContext!.mounted) {
+      final scrollable = Scrollable.maybeOf(_anchorContext!);
+      if (scrollable != null) {
+        scrollable.position.removeListener(_updateToastPosition);
+      }
+    }
+    _scrollSubscription?.cancel();
+    _scrollSubscription = null;
+    _positionNotifier?.dispose();
+    _positionNotifier = null;
+
     _overlayEntry?.remove();
     _overlayEntry = null;
     _animationController = null;
@@ -178,6 +214,18 @@ class AnchorToastController {
   void _immediateCleanup() {
     _autoHideTimer?.cancel();
     _autoHideTimer = null;
+
+    // Clean up scroll listener
+    if (_anchorContext != null && _anchorContext!.mounted) {
+      final scrollable = Scrollable.maybeOf(_anchorContext!);
+      if (scrollable != null) {
+        scrollable.position.removeListener(_updateToastPosition);
+      }
+    }
+    _scrollSubscription?.cancel();
+    _scrollSubscription = null;
+    _positionNotifier?.dispose();
+    _positionNotifier = null;
 
     if (_overlayEntry != null) {
       _overlayEntry!.remove();
@@ -213,28 +261,86 @@ class AnchorToastController {
     overlay.remove();
     _overlayEntry = null;
   }
+
+  /// Sets up scroll listener to track position changes
+  void _setupScrollListener() {
+    _scrollSubscription?.cancel();
+
+    if (_anchorContext == null || !_anchorContext!.mounted) return;
+
+    // Find the nearest scrollable
+    final scrollable = Scrollable.maybeOf(_anchorContext!);
+    if (scrollable != null) {
+      scrollable.position.addListener(_updateToastPosition);
+    }
+  }
+
+  /// Updates the toast position based on current anchor position
+  void _updateToastPosition() {
+    if (_isDisposed ||
+        _anchorContext == null ||
+        !_anchorContext!.mounted ||
+        _positionNotifier == null) {
+      return;
+    }
+
+    try {
+      final renderBox = _anchorContext!.findRenderObject() as RenderBox?;
+      if (renderBox == null || !renderBox.hasSize) return;
+
+      final size = renderBox.size;
+      final position = renderBox.localToGlobal(Offset.zero);
+      final screenSize = MediaQuery.of(_anchorContext!).size;
+
+      // Calculate proper positioning for the toast (same logic as in showToast)
+      const double screenPadding = 16.0;
+      final double anchorCenterX = position.dx + (size.width / 2);
+
+      // Adjust horizontal position to keep toast on screen
+      double adjustedX = anchorCenterX;
+      final double maxToastWidth = screenSize.width - (screenPadding * 2);
+      final double halfToastWidth = maxToastWidth / 2;
+
+      if (anchorCenterX - halfToastWidth < screenPadding) {
+        adjustedX = screenPadding + halfToastWidth;
+      } else if (anchorCenterX + halfToastWidth >
+          screenSize.width - screenPadding) {
+        adjustedX = screenSize.width - screenPadding - halfToastWidth;
+      }
+
+      final adjustedPosition = Offset(
+        adjustedX - (size.width / 2),
+        position.dy,
+      );
+      _positionNotifier!.value = adjustedPosition;
+    } catch (e) {
+      // Silently handle errors that might occur during position updates
+    }
+  }
 }
 
 /// Internal widget that handles the toast display and animation.
 class _ToastWidget extends StatefulWidget {
-  final Offset position;
+  final BuildContext anchorContext;
   final Size anchorSize;
   final Widget toast;
   final bool showAbove;
   final double offset;
   final Size screenSize;
   final EdgeInsets screenPadding;
+  final ValueNotifier<Offset> positionNotifier;
   final Function(AnimationController) onAnimationComplete;
   final VoidCallback onDispose;
 
   const _ToastWidget({
-    required this.position,
+    required this.anchorContext,
     required this.anchorSize,
     required this.toast,
     required this.showAbove,
     required this.offset,
     required this.screenSize,
     required this.screenPadding,
+    required this.positionNotifier,
     required this.onAnimationComplete,
     required this.onDispose,
   });
@@ -305,51 +411,56 @@ class _ToastWidgetState extends State<_ToastWidget>
 
   @override
   Widget build(BuildContext context) {
-    final double toastY = widget.showAbove
-        ? widget.position.dy - widget.offset
-        : widget.position.dy + widget.anchorSize.height + widget.offset;
+    return ValueListenableBuilder<Offset>(
+      valueListenable: widget.positionNotifier,
+      builder: (context, position, child) {
+        final double toastY = widget.showAbove
+            ? position.dy - widget.offset
+            : position.dy + widget.anchorSize.height + widget.offset;
 
-    // Calculate horizontal positioning with screen boundary constraints
-    const double screenPadding = 16.0; // Minimum padding from screen edges
-    final double anchorCenterX =
-        widget.position.dx + (widget.anchorSize.width / 2);
+        // Calculate horizontal positioning with screen boundary constraints
+        const double screenPadding = 16.0; // Minimum padding from screen edges
+        final double anchorCenterX =
+            position.dx + (widget.anchorSize.width / 2);
 
-    return Positioned(
-      left: anchorCenterX,
-      top: toastY,
-      child: RepaintBoundary(
-        child: AnimatedBuilder(
-          animation: _animationController,
-          builder: (context, child) {
-            return ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: widget.screenSize.width - (screenPadding * 2),
-              ),
-              child: FractionalTranslation(
-                translation: Offset(-0.5, widget.showAbove ? -1.0 : 0.0),
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    alignment: widget.showAbove
-                        ? Alignment.bottomCenter
-                        : Alignment.topCenter,
-                    child: FadeTransition(
-                      opacity: _opacityAnimation,
-                      child: RepaintBoundary(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: widget.toast,
+        return Positioned(
+          left: anchorCenterX,
+          top: toastY,
+          child: RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _animationController,
+              builder: (context, child) {
+                return ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: widget.screenSize.width - (screenPadding * 2),
+                  ),
+                  child: FractionalTranslation(
+                    translation: Offset(-0.5, widget.showAbove ? -1.0 : 0.0),
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: ScaleTransition(
+                        scale: _scaleAnimation,
+                        alignment: widget.showAbove
+                            ? Alignment.bottomCenter
+                            : Alignment.topCenter,
+                        child: FadeTransition(
+                          opacity: _opacityAnimation,
+                          child: RepaintBoundary(
+                            child: Material(
+                              color: Colors.transparent,
+                              child: widget.toast,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }

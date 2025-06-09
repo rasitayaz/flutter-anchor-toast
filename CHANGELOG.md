@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.0
+
+### Added
+* **Manual Position Override**: New `showAbove` parameter in `showToast()` method allows manual control over toast positioning
+  - Set `showAbove: true` to force toast above the anchor
+  - Set `showAbove: false` to force toast below the anchor  
+  - Set `showAbove: null` (default) to use automatic smart positioning
+
+### Improved
+* **Keyboard-Aware Positioning**: Smart positioning now considers view insets (keyboard, system UI) for better toast placement
+  - Automatically accounts for keyboard height when calculating available space
+  - Uses visible screen area center instead of full screen center when keyboard is shown
+  - Ensures toasts remain visible and accessible when keyboard or other system UI is active
+
 ## 0.0.1
 
 ### Initial Release
