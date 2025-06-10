@@ -15,7 +15,7 @@ A Flutter package for displaying contextual toasts anchored to widgets with smar
 - 🎯 **Smart Positioning**: Automatically determines whether to show toasts above or below the anchor widget based on available space
 - 🎨 **Smooth Animations**: Beautiful scale and opacity animations for toast appearance and disappearance
 - ⏰ **Auto-dismiss**: Toasts automatically disappear after a specified duration
-- 🎮 **Manual Control**: Dismiss toasts manually using the controller
+- 🎮 **Manual Control**: Dismiss toasts manually using the controller or dismiss all toasts globally
 - 🧩 **Simple API**: Easy-to-use widget wrapper with controller
 - 📱 **Overlay Support**: Uses Flutter's Overlay system for proper z-index handling
 
@@ -76,6 +76,7 @@ The main controller class for managing toast displays.
 
 - `showToast({required Widget toast, required Duration duration, double offset = 8.0, bool enableHapticFeedback = true, bool? showAbove})` - Shows a toast anchored to the registered context
 - `dismiss()` - Manually dismisses the currently shown toast
+- `static dismissAll()` - Dismisses all currently active toasts from all controllers across the entire application
 - `dispose()` - Disposes the controller and cleans up resources
 
 #### Parameters
@@ -183,6 +184,62 @@ controller.showToast(
   duration: Duration(seconds: 2),
   offset: 16.0, // Larger offset for more spacing
 );
+```
+
+### Dismissing Toasts
+
+You can dismiss toasts individually or all at once:
+
+```dart
+// Dismiss a specific toast using its controller
+controller.dismiss();
+
+// Dismiss all active toasts across the entire application
+AnchorToastController.dismissAll();
+
+// Example: Dismiss all toasts when navigating away from a screen
+class MyWidget extends StatefulWidget {
+  @override
+  _MyWidgetState createState() => _MyWidgetState();
+}
+
+class _MyWidgetState extends State<MyWidget> {
+  final _controller = AnchorToastController();
+
+  @override
+  void dispose() {
+    // Clean up individual controller
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _dismissAllToasts() {
+    // This will dismiss toasts from all controllers in the app
+    AnchorToastController.dismissAll();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        AnchorToast(
+          controller: _controller,
+          child: ElevatedButton(
+            onPressed: () => _controller.showToast(
+              toast: Container(/* your toast widget */),
+              duration: Duration(seconds: 3),
+            ),
+            child: Text('Show Toast'),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: _dismissAllToasts,
+          child: Text('Dismiss All Toasts'),
+        ),
+      ],
+    );
+  }
+}
 ```
 
 ## Smart Positioning
