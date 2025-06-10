@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+* **Global Dismiss All Functionality**: New static `dismissAll()` method in `AnchorToastController` for dismissing all active toasts
+  - `AnchorToastController.dismissAll()` dismisses toasts from all controllers across the entire application
+  - Automatic controller registry system tracks all active controllers
+  - Controllers are automatically registered on creation and unregistered on disposal
+  - Safe concurrent modification handling prevents issues when dismissing multiple toasts
+
+### Improved  
+* **Example App Enhancement**: Updated example to demonstrate the new `dismissAll()` functionality
+  - Simplified "Dismiss All Toasts" button implementation using the new static method
+  - Cleaner code by removing the need to manually call dismiss on each individual controller
+
 ## 0.2.0
 
 ### Added

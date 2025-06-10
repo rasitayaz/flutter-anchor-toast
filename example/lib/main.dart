@@ -268,13 +268,7 @@ class _HomePageState extends State<HomePage> {
                     foregroundColor: Colors.white,
                   ),
                   onPressed: () {
-                    _infoController.dismiss();
-                    _warningController.dismiss();
-                    _errorController.dismiss();
-                    _rapidFireController.dismiss();
-                    _longController.dismiss();
-                    _customController.dismiss();
-                    _bottomController.dismiss();
+                    AnchorToastController.dismissAll();
                   },
                   child: const Text('Dismiss All Toasts'),
                 ),
