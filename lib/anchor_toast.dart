@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 
 /// A controller for managing toast displays anchored to widgets.
 class AnchorToastController {
+  static final Set<AnchorToastController> _activeControllers =
+      <AnchorToastController>{};
+
   OverlayEntry? _overlayEntry;
   AnimationController? _animationController;
   Timer? _autoHideTimer;
@@ -13,6 +16,11 @@ class AnchorToastController {
   ValueNotifier<Offset>? _positionNotifier;
   double _screenPadding = 16.0;
   EdgeInsets? _lastViewInsets;
+
+  /// Constructor registers this controller in the global registry
+  AnchorToastController() {
+    _activeControllers.add(this);
+  }
 
   /// Shows a toast anchored to the registered context.
   ///
@@ -176,11 +184,30 @@ class AnchorToastController {
     }
   }
 
+  /// Dismisses all currently active toasts from all controllers.
+  ///
+  /// This is a static method that dismisses toasts from all active
+  /// AnchorToastController instances across the entire application.
+  static void dismissAll() {
+    // Create a copy of the set to avoid concurrent modification
+    final controllers = Set<AnchorToastController>.from(_activeControllers);
+
+    for (final controller in controllers) {
+      if (!controller._isDisposed) {
+        controller.dismiss();
+      }
+    }
+  }
+
   /// Disposes the controller and cleans up resources.
   void dispose() {
     if (_isDisposed) return;
 
     _isDisposed = true;
+
+    // Remove from global registry
+    _activeControllers.remove(this);
+
     final autoHideTimer = _autoHideTimer;
     autoHideTimer?.cancel();
     _autoHideTimer = null;
