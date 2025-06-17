@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+### Fixed
+* **Toast Interactivity Issue**: Fixed toasts not being clickable due to improper use of `FractionalTranslation` widget
+  - Replaced `FractionalTranslation` with proper `Positioned`, `Align`, and `Transform.translate` widgets
+
 ## 0.3.0
 
 ### Added

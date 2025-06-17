@@ -369,21 +369,6 @@ class AnchorToastController {
     final padding = MediaQuery.paddingOf(anchorContext);
     final viewInsets = MediaQuery.viewInsetsOf(anchorContext);
 
-    // Calculate proper positioning for the toast
-    final anchorCenterX = anchorPosition.dx + (anchorSize.width / 2);
-
-    // Adjust horizontal position to keep toast on screen
-    double adjustedX = anchorCenterX;
-    final maxToastWidth = screenSize.width - (_screenPadding * 2);
-    final halfToastWidth = maxToastWidth / 2;
-
-    if (anchorCenterX - halfToastWidth < _screenPadding) {
-      adjustedX = _screenPadding + halfToastWidth;
-    } else if (anchorCenterX + halfToastWidth >
-        screenSize.width - _screenPadding) {
-      adjustedX = screenSize.width - _screenPadding - halfToastWidth;
-    }
-
     // Add vertical bounds checking to keep toast within safe area
     double adjustedY = anchorPosition.dy;
     final minY = padding.top + viewInsets.top + _screenPadding;
@@ -391,7 +376,8 @@ class AnchorToastController {
         screenSize.height - padding.bottom - viewInsets.bottom - _screenPadding;
     adjustedY = adjustedY.clamp(minY, maxY);
 
-    return Offset(adjustedX - (anchorSize.width / 2), adjustedY);
+    // Return the anchor position directly - horizontal centering will be done in the widget
+    return Offset(anchorPosition.dx, adjustedY);
   }
 
   /// Updates the toast position based on current anchor position
@@ -521,42 +507,71 @@ class _ToastWidgetState extends State<_ToastWidget>
     return ValueListenableBuilder<Offset>(
       valueListenable: widget.positionNotifier,
       builder: (context, position, child) {
-        final toastY = widget.showAbove
-            ? position.dy - widget.offset
-            : position.dy + widget.anchorSize.height + widget.offset;
-
         // Calculate horizontal positioning with screen boundary constraints
-        final screenPaddingValue =
-            widget.screenPadding.left; // Use the padding value
+        final screenPaddingValue = widget.screenPadding.left;
         final anchorCenterX = position.dx + (widget.anchorSize.width / 2);
 
+        // Calculate the maximum toast width
+        final maxToastWidth =
+            widget.screenSize.width - (screenPaddingValue * 2);
+
+        // Calculate vertical position based on showAbove flag
+        final toastY = widget.showAbove
+            ? position.dy -
+                  widget
+                      .offset // Show above: this will be the bottom of the toast
+            : position.dy +
+                  widget.anchorSize.height +
+                  widget.offset; // Show below: anchor bottom plus offset
+
         return Positioned(
-          left: anchorCenterX,
-          top: toastY,
+          left: 0, // Start from left edge
+          top: widget.showAbove
+              ? null
+              : toastY, // Only set top when showing below
+          bottom: widget.showAbove
+              ? widget.screenSize.height -
+                    toastY // Position from bottom when showing above
+              : null,
+          width: widget.screenSize.width, // Take full width
           child: RepaintBoundary(
             child: AnimatedBuilder(
               animation: _animationController,
               builder: (context, child) {
-                return ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth:
-                        widget.screenSize.width - (screenPaddingValue * 2),
-                  ),
-                  child: FractionalTranslation(
-                    translation: Offset(-0.5, widget.showAbove ? -1.0 : 0.0),
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: ScaleTransition(
-                        scale: _scaleAnimation,
-                        alignment: widget.showAbove
-                            ? Alignment.bottomCenter
-                            : Alignment.topCenter,
-                        child: FadeTransition(
-                          opacity: _opacityAnimation,
-                          child: RepaintBoundary(
-                            child: Material(
-                              color: Colors.transparent,
-                              child: widget.toast,
+                return Padding(
+                  padding: EdgeInsets.symmetric(horizontal: screenPaddingValue),
+                  child: Align(
+                    alignment: widget.showAbove
+                        ? Alignment
+                              .bottomCenter // Align to bottom when showing above
+                        : Alignment
+                              .topCenter, // Align to top when showing below
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxToastWidth),
+                      child: Transform.translate(
+                        // Fine-tune horizontal centering based on anchor position
+                        offset: Offset(
+                          (anchorCenterX - (widget.screenSize.width / 2)).clamp(
+                            -maxToastWidth / 4,
+                            maxToastWidth / 4,
+                          ),
+                          0,
+                        ),
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: ScaleTransition(
+                            scale: _scaleAnimation,
+                            alignment: widget.showAbove
+                                ? Alignment.bottomCenter
+                                : Alignment.topCenter,
+                            child: FadeTransition(
+                              opacity: _opacityAnimation,
+                              child: RepaintBoundary(
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: widget.toast,
+                                ),
+                              ),
                             ),
                           ),
                         ),
