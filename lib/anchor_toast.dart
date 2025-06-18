@@ -149,7 +149,9 @@ class AnchorToastController {
   }
 
   /// Manually dismisses the currently shown toast.
-  void dismiss() {
+  ///
+  /// [animate] - Whether to animate the dismissal (default: true)
+  void dismiss({bool animate = true}) {
     if (_isDisposed) return;
 
     final autoHideTimer = _autoHideTimer;
@@ -159,6 +161,15 @@ class AnchorToastController {
     final overlayEntry = _overlayEntry;
     if (overlayEntry != null) {
       final animationController = _animationController;
+
+      // If animation is disabled, remove immediately
+      if (!animate) {
+        overlayEntry.remove();
+        _overlayEntry = null;
+        return;
+      }
+
+      // Otherwise, animate the dismissal
       if (animationController != null) {
         if (animationController.status == AnimationStatus.completed ||
             animationController.status == AnimationStatus.forward) {
