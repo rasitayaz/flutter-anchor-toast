@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.2
+
+### Added
+* **Configurable Dismiss Animation**: New optional `animate` parameter in `dismiss()` method for controlling dismissal animation
+  - `dismiss()` - Dismisses with animation (default behavior, maintains backward compatibility)
+  - `dismiss(animate: true)` - Explicitly dismisses with animation
+  - `dismiss(animate: false)` - Dismisses immediately without animation
+  - Useful for scenarios requiring instant dismissal or custom animation handling
+
 ## 0.3.1
 
 ### Fixed
