@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.3
+
+### Fixed
+* **Improved Horizontal Positioning**: Enhanced toast positioning logic for better centering and screen boundary handling
+  - Toasts now remain perfectly centered on anchor widgets when possible
+  - Improved screen edge detection to prevent toasts from being cut off
+  - Added dynamic width calculation using LayoutBuilder for precise positioning
+  - Fixed issues with toasts being off-center when anchor is not centered on screen
+  - Maintains proper screen padding while optimizing available space
+
 ## 0.3.2
 
 ### Added
