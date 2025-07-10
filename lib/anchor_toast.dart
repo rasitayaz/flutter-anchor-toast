@@ -518,7 +518,6 @@ class _ToastWidgetState extends State<_ToastWidget>
     return ValueListenableBuilder<Offset>(
       valueListenable: widget.positionNotifier,
       builder: (context, position, child) {
-        // Calculate horizontal positioning with screen boundary constraints
         final screenPaddingValue = widget.screenPadding.left;
         final anchorCenterX = position.dx + (widget.anchorSize.width / 2);
 
@@ -536,15 +535,10 @@ class _ToastWidgetState extends State<_ToastWidget>
                   widget.offset; // Show below: anchor bottom plus offset
 
         return Positioned(
-          left: 0, // Start from left edge
-          top: widget.showAbove
-              ? null
-              : toastY, // Only set top when showing below
-          bottom: widget.showAbove
-              ? widget.screenSize.height -
-                    toastY // Position from bottom when showing above
-              : null,
-          width: widget.screenSize.width, // Take full width
+          left: 0,
+          top: widget.showAbove ? null : toastY,
+          bottom: widget.showAbove ? widget.screenSize.height - toastY : null,
+          width: widget.screenSize.width,
           child: RepaintBoundary(
             child: AnimatedBuilder(
               animation: _animationController,
@@ -553,40 +547,60 @@ class _ToastWidgetState extends State<_ToastWidget>
                   padding: EdgeInsets.symmetric(horizontal: screenPaddingValue),
                   child: Align(
                     alignment: widget.showAbove
-                        ? Alignment
-                              .bottomCenter // Align to bottom when showing above
-                        : Alignment
-                              .topCenter, // Align to top when showing below
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: maxToastWidth),
-                      child: Transform.translate(
-                        // Fine-tune horizontal centering based on anchor position
-                        offset: Offset(
-                          (anchorCenterX - (widget.screenSize.width / 2)).clamp(
-                            -maxToastWidth / 4,
-                            maxToastWidth / 4,
-                          ),
-                          0,
-                        ),
-                        child: SlideTransition(
-                          position: _slideAnimation,
-                          child: ScaleTransition(
-                            scale: _scaleAnimation,
-                            alignment: widget.showAbove
-                                ? Alignment.bottomCenter
-                                : Alignment.topCenter,
-                            child: FadeTransition(
-                              opacity: _opacityAnimation,
-                              child: RepaintBoundary(
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: widget.toast,
+                        ? Alignment.bottomCenter
+                        : Alignment.topCenter,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Get the actual toast size after layout
+                        return ConstrainedBox(
+                          constraints: BoxConstraints(maxWidth: maxToastWidth),
+                          child: Builder(
+                            builder: (context) {
+                              // Ensure toast stays within screen bounds while remaining centered on anchor
+                              double offsetX =
+                                  anchorCenterX - (widget.screenSize.width / 2);
+                              // Get the actual toast width after layout
+                              final toastWidth = constraints.maxWidth;
+                              final halfToastWidth = toastWidth / 2;
+
+                              // Calculate bounds to keep toast within screen
+                              final minOffset =
+                                  halfToastWidth -
+                                  (widget.screenSize.width / 2) +
+                                  screenPaddingValue;
+                              final maxOffset =
+                                  (widget.screenSize.width / 2) -
+                                  halfToastWidth -
+                                  screenPaddingValue;
+
+                              // Clamp the offset to keep toast within screen bounds
+                              offsetX = offsetX.clamp(minOffset, maxOffset);
+
+                              return Transform.translate(
+                                offset: Offset(offsetX, 0),
+                                child: SlideTransition(
+                                  position: _slideAnimation,
+                                  child: ScaleTransition(
+                                    scale: _scaleAnimation,
+                                    alignment: widget.showAbove
+                                        ? Alignment.bottomCenter
+                                        : Alignment.topCenter,
+                                    child: FadeTransition(
+                                      opacity: _opacityAnimation,
+                                      child: RepaintBoundary(
+                                        child: Material(
+                                          color: Colors.transparent,
+                                          child: widget.toast,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ),
                 );
